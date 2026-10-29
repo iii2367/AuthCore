@@ -1,0 +1,7 @@
+@auth_core_host = http://localhost:5081
+
+### Health check
+GET {{auth_core_host}}/health
+Accept: application/json
+
+###
