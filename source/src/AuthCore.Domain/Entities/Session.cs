@@ -14,7 +14,7 @@ public class Session : Entity
             string          ipAddress,
             SessionStatus   status,
             DateTimeOffset  createdAt,
-            DateTimeOffset  expiredAt,
+            DateTimeOffset  expiresAt,
             DateTimeOffset? endedAt)
     {
         UserId      = userId;
@@ -23,77 +23,70 @@ public class Session : Entity
         IpAddress   = ipAddress;
         Status      = status;
         CreatedAt   = createdAt;
-        ExpiresAt   = expiredAt;
+        ExpiresAt   = expiresAt;
         EndedAt     = endedAt;
     }
-
+ 
     public static Session Create(
             Guid            userId,
             Guid?           clientId,
             string          userAgent,
             string          ipAddress,
             DateTimeOffset  createdAt,
-            DateTimeOffset  expiredAt,
-            DateTimeOffset? endedAt,
-            SessionStatus   status = SessionStatus.Active
-            )
+            DateTimeOffset  expiresAt)
     {
         if (userId == Guid.Empty)                                       { throw new DomainException("UserId must be set."); }
         if (clientId.HasValue && clientId.Value == Guid.Empty)          { throw new DomainException("ClientId cannot be empty."); }
         if (string.IsNullOrWhiteSpace(userAgent))                       { throw new DomainException("UserAgent can't be empty."); }
         if (string.IsNullOrWhiteSpace(ipAddress))                       { throw new DomainException("IpAddress must be set."); } 
-        if (!Enum.IsDefined(status))                                    { throw new DomainException("Invalid session status."); }
-        if (createdAt == DateTimeOffset.MinValue)                       { throw new DomainException("CreatedAt must be set."); }
-        if (expiredAt == DateTimeOffset.MinValue)                       { throw new DomainException("ExpiredAt must be set."); }
-        if (expiredAt <= createdAt)                                     { throw new DomainException("ExpiredAt can't be earlier than CreatedAt."); }
-        if (createdAt.Offset == TimeSpan.Zero)                          { throw new DomainException("CreatedAt must have a non-zero UTC offset."); }
-        if (expiredAt.Offset == TimeSpan.Zero)                          { throw new DomainException("ExpiredAt must have a non-zero UTC offset."); }
-        if (endedAt.HasValue && endedAt.Value.Offset == TimeSpan.Zero)  { throw new DomainException("EndedAt must have a non-zero UTC offset."); }
-        if (endedAt.HasValue && endedAt.Value < createdAt)              { throw new DomainException("EndedAt can't be earlier than CreatedAt."); } 
 
-        return new Session(userId, clientId, userAgent, ipAddress, status, createdAt, expiredAt, endedAt);
+        DateTimeOffsetValidator.ValidateIsSet(createdAt, nameof(createdAt));
+        DateTimeOffsetValidator.ValidateIsSet(expiresAt, nameof(expiresAt));
+        DateTimeOffsetValidator.ValidateIsUtc(createdAt, nameof(createdAt));
+        DateTimeOffsetValidator.ValidateIsUtc(expiresAt, nameof(expiresAt));
+        DateTimeOffsetValidator.ValidateLater(expiresAt, createdAt, nameof(expiresAt), nameof(createdAt));
+
+        return new Session(userId, clientId, userAgent, ipAddress, SessionStatus.Active, createdAt, expiresAt, null); 
     }
  
     public void Revoke(DateTimeOffset now)
     {
-        if (now.Offset == TimeSpan.Zero)        { throw new DomainException("Now must have a non-zero UTC offset."); }
-        if (now == DateTimeOffset.MinValue)     { throw new DomainException("Now must be set."); }
-        if (Status is not SessionStatus.Active) { throw new DomainException("Session cannot be revoke."); }
-        Status = SessionStatus.Revoked;
-        EndedAt = now;
+        if (Status is not SessionStatus.Active) { return; }
+        ChangeStatus(SessionStatus.Revoked, now);  
     }
 
-    public void Terminate(DateTimeOffset now) 
+    public void Terminate(DateTimeOffset now)
     {
-        if (now.Offset == TimeSpan.Zero)        { throw new DomainException("Now must have a non-zero UTC offset."); }
-        if (now == DateTimeOffset.MinValue)     { throw new DomainException("Now must be set."); }
-        if (Status is not SessionStatus.Active) { throw new DomainException("Session cannot be terminate."); }
-        Status = SessionStatus.Terminated;
-        EndedAt = now;
+        ChangeStatus(SessionStatus.Terminated, now);
     }
 
-    public void Expired(DateTimeOffset now) 
+    public void Expire(DateTimeOffset now)
     {
-        if (now.Offset == TimeSpan.Zero)        { throw new DomainException("Now must have a non-zero UTC offset."); }
-        if (now == DateTimeOffset.MinValue)     { throw new DomainException("Now must be set."); }
-        if (Status is not SessionStatus.Active) { throw new DomainException("Session cannot be expired"); }
-        Status = SessionStatus.Expired;
-        EndedAt = now;
+        ChangeStatus(SessionStatus.Expired, now);
     }
 
     public void MarkAsCompromised(DateTimeOffset now)
     {
-        if (now.Offset == TimeSpan.Zero)        { throw new DomainException("Now must have a non-zero UTC offset."); }
-        if (now == DateTimeOffset.MinValue)     { throw new DomainException("Now must be set."); }
-        if (Status is not SessionStatus.Active) { throw new DomainException("Session cannot mark as compromised."); }
-        Status = SessionStatus.Compromised;
-        EndedAt = now;
-    }
-
+        ChangeStatus(SessionStatus.Compromised, now);
+    } 
+ 
     public bool IsActive(DateTimeOffset now)
     {
-        if (now.Offset == TimeSpan.Zero) { throw new DomainException("Now must have a non-zero UTC offset."); }
-        return Status == SessionStatus.Active && EndedAt is null && now >= CreatedAt && now < ExpiresAt; 
+        DateTimeOffsetValidator.ValidateIsSet(now, nameof(now));
+        DateTimeOffsetValidator.ValidateIsUtc(now, nameof(now));
+ 
+        return Status is SessionStatus.Active && EndedAt is null && now >= CreatedAt && now < ExpiresAt;
+    }
+
+    private void ChangeStatus(SessionStatus status, DateTimeOffset now)
+    {
+        DateTimeOffsetValidator.ValidateIsSet(now, nameof(now));
+        DateTimeOffsetValidator.ValidateIsUtc(now, nameof(now));
+        DateTimeOffsetValidator.ValidateNotEarlier(now, CreatedAt, nameof(now), nameof(CreatedAt)); 
+        if (Status is not SessionStatus.Active) { throw new DomainException("Session cannot change status."); }
+
+        Status = status;
+        EndedAt = now;
     }
 
     public Guid             UserId      { get; private set; }

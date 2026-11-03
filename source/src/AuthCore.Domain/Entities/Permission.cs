@@ -18,7 +18,7 @@ public class Permission : Entity
             string name, 
             string description)
     {
-        if (string.IsNullOrWhiteSpace(name)) { throw new DomainException("Name must be set"); }
+        if (string.IsNullOrWhiteSpace(name)) { throw new DomainException("Name must be set."); }
         name = name.Trim();
 
         description = description?.Trim() ?? string.Empty;

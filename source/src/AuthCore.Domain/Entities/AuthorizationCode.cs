@@ -27,17 +27,16 @@ public class AuthorizationCode : Entity
         ExpiresAt       = expiresAt;
         UsedAt          = usedAt;
     }
-
+ 
     public static AuthorizationCode Create(
-        string          codeHash,
-        Guid            clientId,
-        Guid            userId,
-        string          redirectUri,
-        string          codeChallenge,
-        string          scope,
-        DateTimeOffset  createdAt,
-        DateTimeOffset  expiresAt,
-        DateTimeOffset? usedAt)
+            string          codeHash,
+            Guid            clientId,
+            Guid            userId,
+            string          redirectUri,
+            string          codeChallenge,
+            string          scope,
+            DateTimeOffset  createdAt,
+            DateTimeOffset  expiresAt)
     {
         if (string.IsNullOrWhiteSpace(codeHash))                        { throw new DomainException("CodeHash must be set."); }
         if (clientId == Guid.Empty)                                     { throw new DomainException("ClientId must be set."); }
@@ -45,30 +44,31 @@ public class AuthorizationCode : Entity
         if (string.IsNullOrWhiteSpace(redirectUri))                     { throw new DomainException("RedirectUri must be set."); }
         if (string.IsNullOrWhiteSpace(codeChallenge))                   { throw new DomainException("CodeChallenge must be set."); }
         if (string.IsNullOrWhiteSpace(scope))                           { throw new DomainException("Scope must be set."); }
-        if (createdAt == DateTimeOffset.MinValue)                       { throw new DomainException("CreatedAt must be set."); }
-        if (expiresAt <= createdAt)                                     { throw new DomainException("ExpiresAt must be later than CreatedAt."); }
-        if (createdAt.Offset == TimeSpan.Zero)                          { throw new DomainException("CreatedAt must have a non-zero UTC offset."); }
-        if (expiresAt.Offset == TimeSpan.Zero)                          { throw new DomainException("ExpiresAt must have a non-zero UTC offset."); }
-        if (usedAt.HasValue && usedAt.Value.Offset == TimeSpan.Zero)    { throw new DomainException("UsedAt must have a non-zero UTC offset."); }
-        if (usedAt.HasValue && usedAt.Value < createdAt)                { throw new DomainException("UsedAt cannot be earlier than CreatedAt."); }
-        if (usedAt.HasValue && usedAt.Value > expiresAt)                { throw new DomainException("UsedAt cannot be later than ExpiresAt."); } 
 
-        return new AuthorizationCode(codeHash.Trim(), clientId, userId, redirectUri, codeChallenge, scope.Trim(), createdAt, expiresAt, usedAt);
+        DateTimeOffsetValidator.ValidateIsSet(createdAt, nameof(createdAt));
+        DateTimeOffsetValidator.ValidateIsSet(expiresAt, nameof(expiresAt));
+        DateTimeOffsetValidator.ValidateIsUtc(createdAt, nameof(createdAt));
+        DateTimeOffsetValidator.ValidateIsUtc(expiresAt, nameof(expiresAt)); 
+        DateTimeOffsetValidator.ValidateLater(expiresAt, createdAt, nameof(expiresAt), nameof(createdAt));
+
+        return new AuthorizationCode(codeHash.Trim(), clientId, userId, redirectUri, codeChallenge, scope.Trim(), createdAt, expiresAt, null);
     }
 
     public void MarkAsUsed(DateTimeOffset now)
     {
-        if (now.Offset == TimeSpan.Zero) { throw new DomainException("Now must have a non-zero UTC offset."); }
-        if (UsedAt.HasValue)             { throw new DomainException("Authorization code has already been used."); }
-        if (now < CreatedAt)             { throw new DomainException("UsedAt cannot be earlier than CreatedAt."); }
+        if (UsedAt.HasValue)             { throw new DomainException("Authorization code has already been used."); } 
+        DateTimeOffsetValidator.ValidateIsSet(now, nameof(now));
+        DateTimeOffsetValidator.ValidateIsUtc(now, nameof(now));
+        DateTimeOffsetValidator.ValidateNotEarlier(now, CreatedAt, nameof(now), nameof(CreatedAt));
         if (now >= ExpiresAt)            { throw new DomainException("Authorization code has expired."); }
         UsedAt = now;
     }
 
     public bool IsActive(DateTimeOffset now)
     {
-        if (now.Offset == TimeSpan.Zero) { throw new DomainException("Now must have a non-zero UTC offset."); }
-        return UsedAt is null && now < ExpiresAt;
+        DateTimeOffsetValidator.ValidateIsSet(now, nameof(now));
+        DateTimeOffsetValidator.ValidateIsUtc(now, nameof(now)); 
+        return UsedAt is null && now >= CreatedAt && now < ExpiresAt;
     }
 
     public string           CodeHash        { get; private set; } = string.Empty;

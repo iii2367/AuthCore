@@ -18,8 +18,8 @@ public class RolePermission
             Guid roleId, 
             Guid permissionId)
     {
-        if (roleId == Guid.Empty)       { throw new DomainException("RoleId must be set"); }
-        if (permissionId == Guid.Empty) { throw new DomainException("PermissionId must be set"); }
+        if (roleId == Guid.Empty)       { throw new DomainException("RoleId must be set."); }
+        if (permissionId == Guid.Empty) { throw new DomainException("PermissionId must be set."); }
   
         return new RolePermission(roleId, permissionId);
     }

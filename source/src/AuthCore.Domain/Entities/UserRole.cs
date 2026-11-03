@@ -18,8 +18,8 @@ public class UserRole
             Guid userId, 
             Guid roleId)
     {
-        if (userId == Guid.Empty) { throw new DomainException("UserId must be set"); }
-        if (roleId == Guid.Empty) { throw new DomainException("RoleId must be set"); }
+        if (userId == Guid.Empty) { throw new DomainException("UserId must be set."); }
+        if (roleId == Guid.Empty) { throw new DomainException("RoleId must be set."); }
   
         return new UserRole(userId, roleId);
     }
