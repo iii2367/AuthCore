@@ -77,7 +77,7 @@ namespace AuthCore.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "credential",
+                name: "credentials",
                 columns: table => new
                 {
                     user_id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -85,9 +85,9 @@ namespace AuthCore.Infrastructure.Persistence.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_credential", x => x.user_id);
+                    table.PrimaryKey("PK_credentials", x => x.user_id);
                     table.ForeignKey(
-                        name: "FK_credential_users_user_id",
+                        name: "FK_credentials_users_user_id",
                         column: x => x.user_id,
                         principalTable: "users",
                         principalColumn: "id",
@@ -226,7 +226,7 @@ namespace AuthCore.Infrastructure.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "credential");
+                name: "credentials");
 
             migrationBuilder.DropTable(
                 name: "refresh_tokens");

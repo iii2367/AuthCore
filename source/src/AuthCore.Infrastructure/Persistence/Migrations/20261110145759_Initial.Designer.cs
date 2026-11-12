@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AuthCore.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AuthCoreDbContext))]
-    [Migration("20261106071103_Initial")]
+    [Migration("20261110145759_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -39,7 +39,7 @@ namespace AuthCore.Infrastructure.Persistence.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("credential", (string)null);
+                    b.ToTable("credentials", (string)null);
                 });
 
             modelBuilder.Entity("AuthCore.Domain.Entities.Permission", b =>

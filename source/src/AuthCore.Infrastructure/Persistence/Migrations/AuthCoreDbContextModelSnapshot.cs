@@ -36,7 +36,7 @@ namespace AuthCore.Infrastructure.Persistence.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("credential", (string)null);
+                    b.ToTable("credentials", (string)null);
                 });
 
             modelBuilder.Entity("AuthCore.Domain.Entities.Permission", b =>

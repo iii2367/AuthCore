@@ -1,4 +1,5 @@
 using AuthCore.Infrastructure.Persistence;
+using AuthCore.Infrastructure.Persistence.Seeds;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,10 +21,9 @@ public static class DependencyInjection
         // Час через вбудований TimeProvider (у тестах підміняється FakeTimeProvider)
         services.AddSingleton(TimeProvider.System);
 
-        // Далі по мірі появи:
-        // services.AddScoped<IUserRepository, UserRepository>();
-        // services.AddSingleton<IPasswordHasher, Argon2PasswordHasher>();
-        // services.AddSingleton<ITokenService, JwtTokenService>();
+        services.AddScoped<AuthCoreDbSeeder>();
+        services.AddScoped<AuthCoreDatabaseInitializer>();
+
         return services;
     }
 }
